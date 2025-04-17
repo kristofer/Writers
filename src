@@ -1,0 +1,680 @@
+https://github.com/kristofer/Writers.git
+
+// Project structure
+// src/main/java/com/example/bookapi/
+// - BookApiApplication.java
+// - model/
+//   - Author.java
+//   - Book.java
+// - repository/
+//   - AuthorRepository.java
+//   - BookRepository.java
+// - controller/
+//   - AuthorController.java
+//   - BookController.java
+// - service/
+//   - AuthorService.java
+//   - BookService.java
+// - dto/
+//   - AuthorDTO.java
+//   - BookDTO.java
+// src/main/resources/
+// - application.properties
+// pom.xml
+
+// pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.2.4</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.example</groupId>
+	<artifactId>book-api</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>book-api</name>
+	<description>Book and Author REST API</description>
+	<properties>
+		<java.version>17</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.3.0</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
+
+// src/main/resources/application.properties
+spring.datasource.url=jdbc:h2:mem:bookdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# API documentation
+springdoc.api-docs.path=/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+
+// src/main/java/com/example/bookapi/BookApiApplication.java
+package rocks.zipcode;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class BookApiApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(BookApiApplication.class, args);
+    }
+}
+
+// src/main/java/com/example/bookapi/model/Author.java
+package rocks.zipcode.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Author {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @NotBlank(message = "Name is required")
+    private String name;
+    
+    private String biography;
+    
+    @Column(unique = true)
+    private String email;
+    
+    @JsonIgnore
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
+    private Set<Book> books = new HashSet<>();
+}
+
+// src/main/java/com/example/bookapi/model/Book.java
+package rocks.zipcode.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Book {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @NotBlank(message = "Title is required")
+    private String title;
+    
+    @Column(length = 1000)
+    private String description;
+    
+    @NotNull(message = "Publication date is required")
+    private LocalDate publicationDate;
+    
+    private String isbn;
+    
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "author_id", nullable = false)
+    private Author author;
+}
+
+// src/main/java/com/example/bookapi/repository/AuthorRepository.java
+package rocks.zipcode.repository;
+
+import rocks.zipcode.model.Author;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface AuthorRepository extends JpaRepository<Author, Long> {
+    Optional<Author> findByEmail(String email);
+}
+
+// src/main/java/com/example/bookapi/repository/BookRepository.java
+package rocks.zipcode.repository;
+
+import rocks.zipcode.model.Book;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface BookRepository extends JpaRepository<Book, Long> {
+    List<Book> findByAuthorId(Long authorId);
+    Optional<Book> findByIsbn(String isbn);
+}
+
+// src/main/java/com/example/bookapi/dto/AuthorDTO.java
+package rocks.zipcode.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AuthorDTO {
+    private Long id;
+    
+    @NotBlank(message = "Name is required")
+    private String name;
+    
+    private String biography;
+    
+    @Email(message = "Email should be valid")
+    private String email;
+}
+
+// src/main/java/com/example/bookapi/dto/BookDTO.java
+package rocks.zipcode.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookDTO {
+    private Long id;
+    
+    @NotBlank(message = "Title is required")
+    private String title;
+    
+    private String description;
+    
+    @NotNull(message = "Publication date is required")
+    private LocalDate publicationDate;
+    
+    private String isbn;
+    
+    @NotNull(message = "Author ID is required")
+    private Long authorId;
+    
+    private String authorName;
+}
+
+// src/main/java/com/example/bookapi/service/AuthorService.java
+package rocks.zipcode.service;
+
+import rocks.zipcode.dto.AuthorDTO;
+import rocks.zipcode.model.Author;
+import rocks.zipcode.repository.AuthorRepository;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AuthorService {
+    private final AuthorRepository authorRepository;
+    
+    public List<AuthorDTO> getAllAuthors() {
+        return authorRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public AuthorDTO getAuthorById(Long id) {
+        Author author = authorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id: " + id));
+        return convertToDTO(author);
+    }
+    
+    public AuthorDTO createAuthor(AuthorDTO authorDTO) {
+        Author author = convertToEntity(authorDTO);
+        Author savedAuthor = authorRepository.save(author);
+        return convertToDTO(savedAuthor);
+    }
+    
+    public AuthorDTO updateAuthor(Long id, AuthorDTO authorDTO) {
+        Author existingAuthor = authorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id: " + id));
+        
+        existingAuthor.setName(authorDTO.getName());
+        existingAuthor.setBiography(authorDTO.getBiography());
+        existingAuthor.setEmail(authorDTO.getEmail());
+        
+        Author updatedAuthor = authorRepository.save(existingAuthor);
+        return convertToDTO(updatedAuthor);
+    }
+    
+    public void deleteAuthor(Long id) {
+        if (!authorRepository.existsById(id)) {
+            throw new EntityNotFoundException("Author not found with id: " + id);
+        }
+        authorRepository.deleteById(id);
+    }
+    
+    public AuthorDTO convertToDTO(Author author) {
+        AuthorDTO dto = new AuthorDTO();
+        dto.setId(author.getId());
+        dto.setName(author.getName());
+        dto.setBiography(author.getBiography());
+        dto.setEmail(author.getEmail());
+        return dto;
+    }
+    
+    public Author convertToEntity(AuthorDTO dto) {
+        Author author = new Author();
+        author.setId(dto.getId());
+        author.setName(dto.getName());
+        author.setBiography(dto.getBiography());
+        author.setEmail(dto.getEmail());
+        return author;
+    }
+}
+
+// src/main/java/com/example/bookapi/service/BookService.java
+package rocks.zipcode.service;
+
+import rocks.zipcode.dto.BookDTO;
+import rocks.zipcode.model.Author;
+import rocks.zipcode.model.Book;
+import rocks.zipcode.repository.AuthorRepository;
+import rocks.zipcode.repository.BookRepository;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class BookService {
+    private final BookRepository bookRepository;
+    private final AuthorRepository authorRepository;
+    
+    public List<BookDTO> getAllBooks() {
+        return bookRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public BookDTO getBookById(Long id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found with id: " + id));
+        return convertToDTO(book);
+    }
+    
+    public List<BookDTO> getBooksByAuthorId(Long authorId) {
+        if (!authorRepository.existsById(authorId)) {
+            throw new EntityNotFoundException("Author not found with id: " + authorId);
+        }
+        return bookRepository.findByAuthorId(authorId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public BookDTO createBook(BookDTO bookDTO) {
+        Book book = convertToEntity(bookDTO);
+        Book savedBook = bookRepository.save(book);
+        return convertToDTO(savedBook);
+    }
+    
+    public BookDTO updateBook(Long id, BookDTO bookDTO) {
+        Book existingBook = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found with id: " + id));
+        
+        existingBook.setTitle(bookDTO.getTitle());
+        existingBook.setDescription(bookDTO.getDescription());
+        existingBook.setPublicationDate(bookDTO.getPublicationDate());
+        existingBook.setIsbn(bookDTO.getIsbn());
+        
+        if (!existingBook.getAuthor().getId().equals(bookDTO.getAuthorId())) {
+            Author author = authorRepository.findById(bookDTO.getAuthorId())
+                    .orElseThrow(() -> new EntityNotFoundException("Author not found with id: " + bookDTO.getAuthorId()));
+            existingBook.setAuthor(author);
+        }
+        
+        Book updatedBook = bookRepository.save(existingBook);
+        return convertToDTO(updatedBook);
+    }
+    
+    public void deleteBook(Long id) {
+        if (!bookRepository.existsById(id)) {
+            throw new EntityNotFoundException("Book not found with id: " + id);
+        }
+        bookRepository.deleteById(id);
+    }
+    
+    public BookDTO convertToDTO(Book book) {
+        BookDTO dto = new BookDTO();
+        dto.setId(book.getId());
+        dto.setTitle(book.getTitle());
+        dto.setDescription(book.getDescription());
+        dto.setPublicationDate(book.getPublicationDate());
+        dto.setIsbn(book.getIsbn());
+        dto.setAuthorId(book.getAuthor().getId());
+        dto.setAuthorName(book.getAuthor().getName());
+        return dto;
+    }
+    
+    public Book convertToEntity(BookDTO dto) {
+        Book book = new Book();
+        book.setId(dto.getId());
+        book.setTitle(dto.getTitle());
+        book.setDescription(dto.getDescription());
+        book.setPublicationDate(dto.getPublicationDate());
+        book.setIsbn(dto.getIsbn());
+        
+        Author author = authorRepository.findById(dto.getAuthorId())
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with id: " + dto.getAuthorId()));
+        book.setAuthor(author);
+        
+        return book;
+    }
+}
+
+// src/main/java/com/example/bookapi/controller/AuthorController.java
+package rocks.zipcode.controller;
+
+import rocks.zipcode.dto.AuthorDTO;
+import rocks.zipcode.service.AuthorService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/authors")
+@RequiredArgsConstructor
+public class AuthorController {
+    private final AuthorService authorService;
+    
+    @GetMapping
+    public ResponseEntity<List<AuthorDTO>> getAllAuthors() {
+        return ResponseEntity.ok(authorService.getAllAuthors());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<AuthorDTO> getAuthorById(@PathVariable Long id) {
+        return ResponseEntity.ok(authorService.getAuthorById(id));
+    }
+    
+    @PostMapping
+    public ResponseEntity<AuthorDTO> createAuthor(@Valid @RequestBody AuthorDTO authorDTO) {
+        return new ResponseEntity<>(authorService.createAuthor(authorDTO), HttpStatus.CREATED);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<AuthorDTO> updateAuthor(@PathVariable Long id, @Valid @RequestBody AuthorDTO authorDTO) {
+        return ResponseEntity.ok(authorService.updateAuthor(id, authorDTO));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAuthor(@PathVariable Long id) {
+        authorService.deleteAuthor(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+// src/main/java/com/example/bookapi/controller/BookController.java
+package rocks.zipcode.controller;
+
+import rocks.zipcode.dto.BookDTO;
+import rocks.zipcode.service.BookService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/books")
+@RequiredArgsConstructor
+public class BookController {
+    private final BookService bookService;
+    
+    @GetMapping
+    public ResponseEntity<List<BookDTO>> getAllBooks() {
+        return ResponseEntity.ok(bookService.getAllBooks());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<BookDTO> getBookById(@PathVariable Long id) {
+        return ResponseEntity.ok(bookService.getBookById(id));
+    }
+    
+    @GetMapping("/author/{authorId}")
+    public ResponseEntity<List<BookDTO>> getBooksByAuthorId(@PathVariable Long authorId) {
+        return ResponseEntity.ok(bookService.getBooksByAuthorId(authorId));
+    }
+    
+    @PostMapping
+    public ResponseEntity<BookDTO> createBook(@Valid @RequestBody BookDTO bookDTO) {
+        return new ResponseEntity<>(bookService.createBook(bookDTO), HttpStatus.CREATED);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<BookDTO> updateBook(@PathVariable Long id, @Valid @RequestBody BookDTO bookDTO) {
+        return ResponseEntity.ok(bookService.updateBook(id, bookDTO));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+// src/main/java/com/example/bookapi/exception/GlobalExceptionHandler.java
+package rocks.zipcode.exception;
+
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+
+        ValidationErrorResponse errorResponse = new ValidationErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation error",
+                LocalDateTime.now(),
+                errors
+        );
+        
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "An unexpected error occurred",
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+// src/main/java/com/example/bookapi/exception/ErrorResponse.java
+package rocks.zipcode.exception;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ErrorResponse {
+    private int status;
+    private String message;
+    private LocalDateTime timestamp;
+}
+
+// src/main/java/com/example/bookapi/exception/ValidationErrorResponse.java
+package rocks.zipcode.exception;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
+@Getter
+@Setter
+public class ValidationErrorResponse extends ErrorResponse {
+    private Map<String, String> errors;
+
+    public ValidationErrorResponse(int status, String message, LocalDateTime timestamp, Map<String, String> errors) {
+        super(status, message, timestamp);
+        this.errors = errors;
+    }
+}
+
+// src/main/java/com/example/bookapi/config/OpenApiConfig.java
+package rocks.zipcode.config;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenApiConfig {
+    
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Book and Author API")
+                        .description("Spring Boot REST API for managing books and authors")
+                        .version("1.0.0")
+                        .contact(new Contact()
+                                .name("API Support")
+                                .email("support@example.com"))
+                        .license(new License()
+                                .name("Apache 2.0")
+                                .url("http://www.apache.org/licenses/LICENSE-2.0.html")));
+    }
+}
