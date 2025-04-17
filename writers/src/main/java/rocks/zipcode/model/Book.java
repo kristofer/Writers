@@ -18,6 +18,8 @@ public class Book {
         this.author = author;
     }
 
+    public Book() {}
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;

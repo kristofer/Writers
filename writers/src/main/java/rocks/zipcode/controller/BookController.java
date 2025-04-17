@@ -3,7 +3,6 @@ package rocks.zipcode.controller;
 import rocks.zipcode.dto.BookDTO;
 import rocks.zipcode.service.BookService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/books")
+@RequestMapping("/books")
 public class BookController {
     
     @Autowired

@@ -24,6 +24,18 @@ public class BookDTO {
     
     private String authorName;
 
+    public BookDTO(Long id, @NotBlank(message = "Title is required") String title, String description,
+            @NotNull(message = "Publication date is required") LocalDate publicationDate, String isbn,
+            @NotNull(message = "Author ID is required") Long authorId, String authorName) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.publicationDate = publicationDate;
+        this.isbn = isbn;
+        this.authorId = authorId;
+        this.authorName = authorName;
+    }
+
     public BookDTO() {
     }
 

@@ -25,6 +25,9 @@ public class Author {
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
     private Set<Book> books = new HashSet<>();
 
+    public Author() {
+    }
+
     public Author(Long id, @NotBlank(message = "Name is required") String name, String biography, String email,
             Set<Book> books) {
         this.id = id;

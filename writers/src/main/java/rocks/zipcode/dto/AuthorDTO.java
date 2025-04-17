@@ -51,6 +51,9 @@ public class AuthorDTO {
         this.email = email;
     }
 
+    public AuthorDTO() {
+    }
+    
     public void setId(Long id) {
         this.id = id;
     }

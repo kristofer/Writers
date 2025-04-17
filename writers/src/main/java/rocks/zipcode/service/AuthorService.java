@@ -1,16 +1,15 @@
 package rocks.zipcode.service;
 
-import rocks.zipcode.dto.AuthorDTO;
-import rocks.zipcode.model.Author;
-import rocks.zipcode.repository.AuthorRepository;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import jakarta.persistence.EntityNotFoundException;
+import rocks.zipcode.dto.AuthorDTO;
+import rocks.zipcode.model.Author;
+import rocks.zipcode.repository.AuthorRepository;
 
 @Service
 public class AuthorService {
