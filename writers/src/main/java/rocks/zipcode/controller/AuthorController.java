@@ -4,6 +4,8 @@ import rocks.zipcode.dto.AuthorDTO;
 import rocks.zipcode.service.AuthorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +14,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/authors")
-@RequiredArgsConstructor
 public class AuthorController {
+
+    @Autowired
     private final AuthorService authorService;
-    
+
+    public AuthorController(AuthorService authorService) {
+        this.authorService = authorService;
+    }
+
     @GetMapping
     public ResponseEntity<List<AuthorDTO>> getAllAuthors() {
         return ResponseEntity.ok(authorService.getAllAuthors());
